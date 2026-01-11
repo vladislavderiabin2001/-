@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  server:
+    image: ubuntu:22.04
+    container_name: firewall-server
+    hostname: server
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+      - SYS_RESOURCE
+    command: sleep infinity
+    networks:
+      external-net:
+        ipv4_address: 172.18.0.10
+      internal-net:
+        ipv4_address: 172.19.0.10
+    ports:
+      - "8080:80"      # HTTP для доступа с хоста
+      - "10053:53/udp" # DNS для доступа с хоста
+    volumes:
+      - /sys/kernel/debug:/sys/kernel/debug:rw
+      - /usr/src:/usr/src:ro
+      - /lib/modules:/lib/modules:ro
+      - ./scripts:/opt/scripts:rw
+
+  client:
+    image: ubuntu:22.04
+    container_name: firewall-client
+    hostname: client
+    command: sleep infinity
+    networks:
+      internal-net:
+        ipv4_address: 172.19.0.20
+    depends_on:
+      - server
+    volumes:
+      - ./scripts:/opt/scripts:ro
+
+networks:
+  external-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.18.0.0/16
+          gateway: 172.18.0.1
+  
+  internal-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.19.0.0/16
+          gateway: 172.19.0.1
